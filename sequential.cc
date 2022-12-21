@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fstream>
 #include <ctime>
 using namespace std;
 
@@ -18,14 +19,15 @@ void print_matrix(float *A, int N)
 
 int main(int argc, char **argv)
 {
-  if (argc != 2)
+  if (argc != 3)
   {
-    fprintf(stderr, "must provide exactly 1 argument for matrix size!\n");
+    fprintf(stderr, "must provide exactly 2 argument for matrix size!\n");
     return 1;
   }
 
   // parsing argument
   int N = atoi(argv[1]);
+  char *out_filename = argv[2];
 
   // generate matrix
   // srand((unsigned)time(NULL));
@@ -65,4 +67,18 @@ int main(int argc, char **argv)
   print_matrix(A, N);
   printf("L is\n");
   print_matrix(L, N);
+
+  // write result to output file
+  ofstream out_file(out_filename);
+  for (int i = 0; i < N * N; i++)
+  {
+    out_file.write((char *)&A[i], sizeof(float));
+  }
+  for (int i = 0; i < N * N; i++)
+  {
+    out_file.write((char *)&L[i], sizeof(float));
+  }
+  out_file.close();
+  free(A);
+  free(L);
 }
