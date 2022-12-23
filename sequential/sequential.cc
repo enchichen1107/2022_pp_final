@@ -61,8 +61,10 @@ int main(int argc, char **argv)
     print_matrix(A, N);
   }
 
-  // lu factorization
+  // basic lu factorization
   basic_lu(A, L, N);
+
+  // blocked lu factorization
 
   // assign 1 to diagonal of L
   for (int i = 0; i < N; ++i)
