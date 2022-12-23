@@ -37,9 +37,11 @@ int main(int argc, char **argv)
   {
     for (int j = 0; j < N; ++j)
     {
-      A[i * N + j] = 1 + (rand() % 100);
+      A[i * N + j] = 1 + (rand() % 10000);
       L[i * N + j] = 0;
     }
+    // ensure diagonally dominant
+    A[i * N + i] = A[i * N + i] + 10000 * N;
   }
   printf("the matrix before lu factorization is\n");
   print_matrix(A, N);
