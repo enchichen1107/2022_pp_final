@@ -5,6 +5,7 @@
 #include <ctime>
 #include <chrono>
 #include <sys/time.h>
+#include "basic_lu.h"
 
 using namespace std;
 using std::chrono::duration_cast;
@@ -61,20 +62,12 @@ int main(int argc, char **argv)
   }
 
   // lu factorization
-  for (int k = 0; k < N - 1; ++k)
+  basic_lu(A, L, N);
+
+  // assign 1 to diagonal of L
+  for (int i = 0; i < N; ++i)
   {
-    for (int i = k + 1; i < N; ++i)
-    {
-      L[i * N + k] = A[i * N + k] / A[k * N + k];
-    }
-    for (int j = k; j < N; ++j)
-    {
-      for (int i = k; i < N; ++i)
-      {
-        A[i * N + j] = A[i * N + j] - L[i * N + k] * A[k * N + j];
-      }
-    }
-    L[k * N + k] = 1;
+    L[i * N + i] = 1;
   }
 
   // print outcome
@@ -89,11 +82,11 @@ int main(int argc, char **argv)
 
   // write result to output file
   ofstream out_file(out_filename);
-  for (int i = 0; i < N * N; i++)
+  for (int i = 0; i < N * N; ++i)
   {
     out_file.write((char *)&A[i], sizeof(float));
   }
-  for (int i = 0; i < N * N; i++)
+  for (int i = 0; i < N * N; ++i)
   {
     out_file.write((char *)&L[i], sizeof(float));
   }
