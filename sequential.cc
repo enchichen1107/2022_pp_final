@@ -3,7 +3,14 @@
 #include <string.h>
 #include <fstream>
 #include <ctime>
+#include <chrono>
+#include <sys/time.h>
+
 using namespace std;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using std::chrono::seconds;
+using std::chrono::system_clock;
 
 void print_matrix(float *A, int N)
 {
@@ -24,6 +31,8 @@ int main(int argc, char **argv)
     fprintf(stderr, "must provide exactly 2 argument for matrix size!\n");
     return 1;
   }
+  typedef std::chrono::milliseconds ms;
+  auto total_starttime = duration_cast<ms>(system_clock::now().time_since_epoch()).count();
 
   // parsing argument
   int N = atoi(argv[1]);
@@ -43,8 +52,13 @@ int main(int argc, char **argv)
     // ensure diagonally dominant
     A[i * N + i] = A[i * N + i] + 10000 * N;
   }
-  printf("the matrix before lu factorization is\n");
-  print_matrix(A, N);
+
+  // print matrix before lu factorization
+  if (N < 11)
+  {
+    printf("the matrix before lu factorization is\n");
+    print_matrix(A, N);
+  }
 
   // lu factorization
   for (int k = 0; k < N - 1; ++k)
@@ -64,11 +78,14 @@ int main(int argc, char **argv)
   }
 
   // print outcome
-  printf("the lu factorization outcome is\n");
-  printf("U is\n");
-  print_matrix(A, N);
-  printf("L is\n");
-  print_matrix(L, N);
+  if (N < 11)
+  {
+    printf("the lu factorization outcome is\n");
+    printf("U is\n");
+    print_matrix(A, N);
+    printf("L is\n");
+    print_matrix(L, N);
+  }
 
   // write result to output file
   ofstream out_file(out_filename);
@@ -83,4 +100,8 @@ int main(int argc, char **argv)
   out_file.close();
   free(A);
   free(L);
+
+  // calculate total spent time
+  auto total_endtime = duration_cast<ms>(system_clock::now().time_since_epoch()).count();
+  printf("total time spent%lld\n", (total_endtime - total_starttime));
 }
