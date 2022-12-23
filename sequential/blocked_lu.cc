@@ -80,10 +80,7 @@ void blocked_lu(int B, int N, float *A, float *L)
     for (int j = i + 1; j < blocks; ++j)
     {
       col_phase(i, j, B, n, A);
-    }
 
-    for (int j = i + 1; j < blocks; ++j)
-    {
       for (int k = i + 1; k < blocks; ++k)
       {
         right_down_phase(i, j, k, B, n, A);
