@@ -1,5 +1,5 @@
 # 2022_pp_final parallel LU factorization
-## Using openMP and cuda
+## Using openMP and cuda for parallelization
 ### To run sequential code
 - cd to project file
 - g++ sequential.cc -o sequential
