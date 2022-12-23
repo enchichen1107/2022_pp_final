@@ -14,13 +14,13 @@ using std::chrono::milliseconds;
 using std::chrono::seconds;
 using std::chrono::system_clock;
 
-void print_matrix(float *A, int N)
+void print_matrix(float *A, int N, int n)
 {
   for (int i = 0; i < N; ++i)
   {
     for (int j = 0; j < N; ++j)
     {
-      printf("%.2f ", A[i * N + j]);
+      printf("%.2f ", A[i * n + j]);
     }
     printf("\n");
   }
@@ -53,22 +53,39 @@ int main(int argc, char **argv)
   {
     for (int j = 0; j < N; ++j)
     {
-      A[i * N + j] = 1 + (rand() % 10000);
+      A[i * n + j] = 1 + (rand() % 10000);
       L[i * N + j] = 0;
     }
     // ensure diagonally dominant
-    A[i * N + i] = A[i * N + i] + 10000 * N;
+    A[i * n + i] = A[i * n + i] + 10000 * N;
+  }
+
+  // do the padding
+  if ((N % B) != 0)
+  {
+    for (int i = N; i < n; ++i)
+    {
+      for (int j = 0; j < n; ++j)
+      {
+        A[i * n + j] = 1000 + i + j;
+      }
+      A[i * n + i] = A[i * n + i] + 10000 * n;
+    }
+    for (int j = N; j < n; ++j)
+    {
+      for (int i = 0; i < n - N; ++i)
+      {
+        A[i * n + j] = 1000 + i + j;
+      }
+    }
   }
 
   // print matrix before lu factorization
   if (N < 11)
   {
     printf("the matrix before lu factorization is\n");
-    print_matrix(A, N);
+    print_matrix(A, N, n);
   }
-
-  // basic lu factorization
-  // basic_lu(A, L, N);
 
   // blocked lu factorization
   blocked_lu(B, N, A, L);
@@ -84,16 +101,19 @@ int main(int argc, char **argv)
   {
     printf("the lu factorization outcome is\n");
     printf("U is\n");
-    print_matrix(A, N);
+    print_matrix(A, N, n);
     printf("L is\n");
-    print_matrix(L, N);
+    print_matrix(L, N, N);
   }
 
   // write result to output file
   ofstream out_file(out_filename);
-  for (int i = 0; i < N * N; ++i)
+  for (int i = 0; i < N; ++i)
   {
-    out_file.write((char *)&A[i], sizeof(float));
+    for (int j = 0; j < N; ++j)
+    {
+      out_file.write((char *)&A[i * n + j], sizeof(float));
+    }
   }
   for (int i = 0; i < N * N; ++i)
   {

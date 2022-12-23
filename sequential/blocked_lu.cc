@@ -1,60 +1,60 @@
 #include "blocked_lu.h"
 
-void diagonal_phase(int i, int B, int N, float *A)
+void diagonal_phase(int i, int B, int n, float *A)
 {
-  for (int ii = i * B; ii < (i * B) + B - 1; ii++)
+  for (int ii = i * B; ii < (i * B) + B - 1; ++ii)
   {
-    for (int jj = ii + 1; jj < (i * B) + B; jj++)
+    for (int jj = ii + 1; jj < (i * B) + B; ++jj)
     {
-      A[(jj * N) + ii] /= A[(ii * N) + ii];
+      A[(jj * n) + ii] = A[(jj * n) + ii] / A[(ii * n) + ii];
 
-      for (int kk = ii + 1; kk < (i * B) + B; kk++)
+      for (int kk = ii + 1; kk < (i * B) + B; ++kk)
       {
-        A[(jj * N) + kk] = A[(jj * N) + kk] - (A[(jj * N) + ii] * A[(ii * N) + kk]);
+        A[(jj * n) + kk] = A[(jj * n) + kk] - (A[(jj * n) + ii] * A[(ii * n) + kk]);
       }
     }
   }
 }
 
-void row_phase(int i, int j, int B, int N, float *A)
+void row_phase(int i, int j, int B, int n, float *A)
 {
-  for (int ii = i * B; ii < (i * B) + (B - 1); ii++)
+  for (int ii = i * B; ii < (i * B) + (B - 1); ++ii)
   {
-    for (int jj = ii + 1; jj < B; jj++)
+    for (int jj = ii + 1; jj < B; ++jj)
     {
-      for (int kk = j * B; kk < (j * B) + B; kk++)
+      for (int kk = j * B; kk < (j * B) + B; ++kk)
       {
-        A[(jj * N) + kk] = A[(jj * N) + kk] - (A[(jj * N) + ii] * A[(ii * N) + kk]);
+        A[(jj * n) + kk] = A[(jj * n) + kk] - (A[(jj * n) + ii] * A[(ii * n) + kk]);
       }
     }
   }
 }
 
-void col_phase(int i, int j, int B, int N, float *A)
+void col_phase(int i, int j, int B, int n, float *A)
 {
-  for (int ii = i * B; ii < (i * B) + B; ii++)
+  for (int ii = i * B; ii < (i * B) + B; ++ii)
   {
-    for (int jj = j * B; jj < (j * B) + B; jj++)
+    for (int jj = j * B; jj < (j * B) + B; ++jj)
     {
-      A[(jj * N) + ii] /= A[(ii * N) + ii];
+      A[(jj * n) + ii] = A[(jj * n) + ii] / A[(ii * n) + ii];
 
-      for (int kk = ii + 1; kk < (i * B) + B; kk++)
+      for (int kk = ii + 1; kk < (i * B) + B; ++kk)
       {
-        A[(jj * N) + kk] = A[(jj * N) + kk] - (A[(jj * N) + ii] * A[(ii * N) + kk]);
+        A[(jj * n) + kk] = A[(jj * n) + kk] - (A[(jj * n) + ii] * A[(ii * n) + kk]);
       }
     }
   }
 }
 
-void right_down_phase(int i, int j, int k, int B, int N, float *A)
+void right_down_phase(int i, int j, int k, int B, int n, float *A)
 {
-  for (int ii = i * B; ii < (i * B) + B; ii++)
+  for (int ii = i * B; ii < (i * B) + B; ++ii)
   {
-    for (int jj = j * B; jj < (j * B) + B; jj++)
+    for (int jj = j * B; jj < (j * B) + B; ++jj)
     {
-      for (int kk = k * B; kk < (k * B) + B; kk++)
+      for (int kk = k * B; kk < (k * B) + B; ++kk)
       {
-        A[(jj * N) + kk] = A[(jj * N) + kk] - (A[(jj * N) + ii] * A[(ii * N) + kk]);
+        A[(jj * n) + kk] = A[(jj * n) + kk] - (A[(jj * n) + ii] * A[(ii * n) + kk]);
       }
     }
   }
@@ -62,24 +62,28 @@ void right_down_phase(int i, int j, int k, int B, int N, float *A)
 
 void blocked_lu(int B, int N, float *A, float *L)
 {
-  int num_blocks = N / B + (N % B) ? 1 : 0;
-  for (int i = 0; i < num_blocks; i++)
+  int n = N;
+  if ((N % B) != 0)
+    n = B * (N / B) + B;
+  int blocks = n / B;
+
+  for (int i = 0; i < blocks; ++i)
   {
 
-    diagonal_phase(i, B, N, A);
+    diagonal_phase(i, B, n, A);
 
-    for (int j = i + 1; j < num_blocks; j++)
+    for (int j = i + 1; j < blocks; ++j)
     {
-      row_phase(i, j, B, N, A);
+      row_phase(i, j, B, n, A);
     }
 
-    for (int j = i + 1; j < num_blocks; j++)
+    for (int j = i + 1; j < blocks; ++j)
     {
-      col_phase(i, j, B, N, A);
+      col_phase(i, j, B, n, A);
 
-      for (int k = i + 1; k < num_blocks; k++)
+      for (int k = i + 1; k < blocks; ++k)
       {
-        right_down_phase(i, j, k, B, N, A);
+        right_down_phase(i, j, k, B, n, A);
       }
     }
   }
@@ -89,8 +93,8 @@ void blocked_lu(int B, int N, float *A, float *L)
   {
     for (int j = i - 1; j >= 0; --j)
     {
-      L[i * N + j] = A[i * N + j];
-      A[i * N + j] = 0;
+      L[i * N + j] = A[i * n + j];
+      A[i * n + j] = 0;
     }
   }
 }
