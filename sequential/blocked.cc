@@ -5,7 +5,6 @@
 #include <ctime>
 #include <chrono>
 #include <sys/time.h>
-#include "basic_lu.h"
 #include "blocked_lu.h"
 
 using namespace std;
