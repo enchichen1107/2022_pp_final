@@ -1,10 +1,13 @@
 CXXFLAGS := -lm -O3 -std=c++11
-EXES     := seq
+EXES     := basic blocked
 
 alls: $(EXES)
 
 clean:
 	rm -f $(EXES)
 
-seq: sequential.cc basic_lu.cc
+basic: basic.cc basic_lu.cc
+	g++ $(CXXFLAGS) -o $@ $?
+
+blocked: blocked.cc blocked_lu.cc
 	g++ $(CXXFLAGS) -o $@ $?

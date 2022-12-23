@@ -1,4 +1,5 @@
 #include "basic_lu.h"
+
 void basic_lu(float *A, float *L, int N)
 {
   for (int k = 0; k < N - 1; ++k)

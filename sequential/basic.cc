@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 {
   if (argc != 3)
   {
-    fprintf(stderr, "must provide exactly 2 argument for matrix size!\n");
+    fprintf(stderr, "must provide exactly 2 arguments N output_filename\n");
     return 1;
   }
   typedef std::chrono::milliseconds ms;
@@ -64,8 +64,6 @@ int main(int argc, char **argv)
   // basic lu factorization
   basic_lu(A, L, N);
 
-  // blocked lu factorization
-
   // assign 1 to diagonal of L
   for (int i = 0; i < N; ++i)
   {
@@ -98,5 +96,5 @@ int main(int argc, char **argv)
 
   // calculate total spent time
   auto total_endtime = duration_cast<ms>(system_clock::now().time_since_epoch()).count();
-  printf("total time spent%lld\n", (total_endtime - total_starttime));
+  printf("total time spent for basic lu %lld ms\n", (total_endtime - total_starttime));
 }
