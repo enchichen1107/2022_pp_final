@@ -1,5 +1,9 @@
 # exe file names
 seq
+basic
+blocked
+blocked_cuda
+lu_cuda
 
 # Prerequisites
 *.d
@@ -8,6 +12,7 @@ seq
 *.slo
 *.lo
 *.o
+*.ou
 *.obj
 
 # Precompiled Headers
