@@ -1,128 +1,100 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fstream>
-#include <ctime>
-#include <chrono>
-#include <sys/time.h>
-#include "blocked_lu.h"
+#include "blocked.h"
 
-using namespace std;
-using std::chrono::duration_cast;
-using std::chrono::milliseconds;
-using std::chrono::seconds;
-using std::chrono::system_clock;
-
-void print_matrix(float *A, int N, int n)
+void diagonal_phase(int i, int B, int n, float *A)
 {
-  for (int i = 0; i < N; ++i)
+  for (int ii = i * B; ii < (i * B) + B - 1; ++ii)
   {
-    for (int j = 0; j < N; ++j)
+    for (int jj = ii + 1; jj < (i * B) + B; ++jj)
     {
-      printf("%.2f ", A[i * n + j]);
+      A[(jj * n) + ii] = A[(jj * n) + ii] / A[(ii * n) + ii];
+
+      for (int kk = ii + 1; kk < (i * B) + B; ++kk)
+      {
+        A[(jj * n) + kk] = A[(jj * n) + kk] - (A[(jj * n) + ii] * A[(ii * n) + kk]);
+      }
     }
-    printf("\n");
   }
 }
 
-int main(int argc, char **argv)
+void row_phase(int i, int j, int B, int n, float *A)
 {
-  if (argc != 4)
+  for (int ii = i * B; ii < (i * B) + (B - 1); ++ii)
   {
-    fprintf(stderr, "must provide exactly 3 arguments N block_size output_filename\n");
-    return 1;
+    for (int jj = ii + 1; jj < B; ++jj)
+    {
+      for (int kk = j * B; kk < (j * B) + B; ++kk)
+      {
+        A[(jj * n) + kk] = A[(jj * n) + kk] - (A[(jj * n) + ii] * A[(ii * n) + kk]);
+      }
+    }
   }
-  typedef std::chrono::milliseconds ms;
-  auto total_starttime = duration_cast<ms>(system_clock::now().time_since_epoch()).count();
+}
 
-  // parsing argument
-  int N = atoi(argv[1]);
-  int B = atoi(argv[2]);
-  char *out_filename = argv[3];
+void col_phase(int i, int j, int B, int n, float *A)
+{
+  for (int ii = i * B; ii < (i * B) + B; ++ii)
+  {
+    for (int jj = j * B; jj < (j * B) + B; ++jj)
+    {
+      A[(jj * n) + ii] = A[(jj * n) + ii] / A[(ii * n) + ii];
 
-  // generate matrix
-  // srand((unsigned)time(NULL));
+      for (int kk = ii + 1; kk < (i * B) + B; ++kk)
+      {
+        A[(jj * n) + kk] = A[(jj * n) + kk] - (A[(jj * n) + ii] * A[(ii * n) + kk]);
+      }
+    }
+  }
+}
+
+void right_down_phase(int i, int j, int k, int B, int n, float *A)
+{
+  for (int ii = i * B; ii < (i * B) + B; ++ii)
+  {
+    for (int jj = j * B; jj < (j * B) + B; ++jj)
+    {
+      for (int kk = k * B; kk < (k * B) + B; ++kk)
+      {
+        A[(jj * n) + kk] = A[(jj * n) + kk] - (A[(jj * n) + ii] * A[(ii * n) + kk]);
+      }
+    }
+  }
+}
+
+void blocked_lu(int B, int N, float *A, float *L)
+{
   int n = N;
   if ((N % B) != 0)
     n = B * (N / B) + B;
+  int blocks = n / B;
 
-  float *A = (float *)malloc(n * n * sizeof(float));
-  float *L = (float *)malloc(N * N * sizeof(float));
-  for (int i = 0; i < N; ++i)
+  for (int i = 0; i < blocks; ++i)
   {
-    for (int j = 0; j < N; ++j)
-    {
-      A[i * n + j] = 1 + (rand() % 10000);
-      L[i * N + j] = 0;
-    }
-    // ensure diagonally dominant
-    A[i * n + i] = A[i * n + i] + 10000 * N;
-  }
 
-  // do the padding
-  if ((N % B) != 0)
-  {
-    for (int i = N; i < n; ++i)
+    diagonal_phase(i, B, n, A);
+
+    for (int j = i + 1; j < blocks; ++j)
     {
-      for (int j = 0; j < n; ++j)
-      {
-        A[i * n + j] = 1000 + i + j;
-      }
-      A[i * n + i] = A[i * n + i] + 10000 * n;
+      row_phase(i, j, B, n, A);
     }
-    for (int j = N; j < n; ++j)
+
+    for (int j = i + 1; j < blocks; ++j)
     {
-      for (int i = 0; i < n - N; ++i)
+      col_phase(i, j, B, n, A);
+
+      for (int k = i + 1; k < blocks; ++k)
       {
-        A[i * n + j] = 1000 + i + j;
+        right_down_phase(i, j, k, B, n, A);
       }
     }
   }
 
-  // print matrix before lu factorization
-  if (N < 11)
+  // extract L and U
+  for (int i = 1; i < N; ++i)
   {
-    printf("the matrix before lu factorization is\n");
-    print_matrix(A, N, n);
-  }
-
-  // blocked lu factorization
-  blocked_lu(B, N, A, L);
-
-  // assign 1 to diagonal of L
-  for (int i = 0; i < N; ++i)
-  {
-    L[i * N + i] = 1;
-  }
-
-  // print outcome
-  if (N < 11)
-  {
-    printf("the lu factorization outcome is\n");
-    printf("U is\n");
-    print_matrix(A, N, n);
-    printf("L is\n");
-    print_matrix(L, N, N);
-  }
-
-  // write result to output file
-  ofstream out_file(out_filename);
-  for (int i = 0; i < N; ++i)
-  {
-    for (int j = 0; j < N; ++j)
+    for (int j = i - 1; j >= 0; --j)
     {
-      out_file.write((char *)&A[i * n + j], sizeof(float));
+      L[i * N + j] = A[i * n + j];
+      A[i * n + j] = 0;
     }
   }
-  for (int i = 0; i < N * N; ++i)
-  {
-    out_file.write((char *)&L[i], sizeof(float));
-  }
-  out_file.close();
-  free(A);
-  free(L);
-
-  // calculate total spent time
-  auto total_endtime = duration_cast<ms>(system_clock::now().time_since_epoch()).count();
-  printf("total time spent for blocked lu %lld ms\n", (total_endtime - total_starttime));
 }
