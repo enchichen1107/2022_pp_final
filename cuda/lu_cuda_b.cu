@@ -9,11 +9,36 @@
 #include <cuda_runtime.h>
 #include "blocked_lu.h"
 
+#define MAX_THREAD 1024
+
 using namespace std;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::seconds;
 using std::chrono::system_clock;
+
+// this method is using n as block width for better global memory coalescing
+__global__ void compute_LU(int i, int B, int B_num, int n, float *A)
+{
+  __shared__ float multiplier[1];
+
+  int x = (B * (blockIdx.x % B_num)) + threadIdx.x;
+  int y = blockIdx.x / B_num + i;
+
+  // calculate multiplier
+  if (x == 0)
+  {
+    multiplier[0] = A[y * n + (i - 1)] / A[(i - 1) * n + (i - 1)];
+    __syncthreads();
+  }
+  
+  // update row
+  A[y * n + (x + (i - 1))] = A[y * n + (x + (i - 1))] - (multiplier[0] * A[(i - 1) * n + (x + (i - 1))]); 
+
+  // write back multiplier
+  A[y * n + (i - 1)] = multiplier[0];
+  
+}
 
 void print_matrix(float *A, int N, int n)
 {
@@ -29,9 +54,9 @@ void print_matrix(float *A, int N, int n)
 
 int main(int argc, char **argv)
 {
-  if (argc != 4)
+  if (argc != 3)
   {
-    fprintf(stderr, "must provide exactly 3 arguments N block_size output_filename\n");
+    fprintf(stderr, "must provide exactly 2 arguments N output_filename\n");
     return 1;
   }
   typedef std::chrono::milliseconds ms;
@@ -39,48 +64,64 @@ int main(int argc, char **argv)
 
   // parsing argument
   int N = atoi(argv[1]);
-  int B = atoi(argv[2]);
-  char *out_filename = argv[3];
+  char *out_filename = argv[2];
 
   // generate matrix
   // srand((unsigned)time(NULL));
-  int n = N;
-  if ((N % B) != 0)
-    n = B * (N / B) + B;
-  int blocks = n / B;
+  int n = N, B = N, B_num = 1;
+  // if row size >= max threads in a block then do padding
+  if (N >= MAX_THREAD)
+  {
+    B = MAX_THREAD;
+    n = (B * (N / B)) + ((N % B == 0)? 0 : B);
+    printf("n %d\n",n);
+    printf("N %d\n",N);
+    B_num = n / B;
+  }
+  printf("init success\n");
 
   float *A = (float *)malloc(n * n * sizeof(float));
   float *L = (float *)malloc(N * N * sizeof(float));
+
+  if ((A == NULL)||(L == NULL))
+  {
+    printf("malloc failed\n");
+    exit(1);
+  }
+
+
   for (int i = 0; i < N; ++i)
   {
     for (int j = 0; j < N; ++j)
     {
-      A[i * n + j] = 1 + (rand() % 10000);
+      A[i * n + j] = 1 + (rand() % 10);
       L[i * N + j] = 0;
     }
     // ensure diagonally dominant
-    A[i * n + i] = A[i * n + i] + 10000 * N;
+    A[i * n + i] = A[i * n + i] + 10 * N;
   }
+  printf("alloc mem success\n");
 
   // do the padding
-  if ((N % B) != 0)
+  if (N >= MAX_THREAD)
   {
     for (int i = N; i < n; ++i)
     {
       for (int j = 0; j < n; ++j)
       {
-        A[i * n + j] = 1000 + i + j;
+        A[i * n + j] = 10 + i + j;
       }
-      A[i * n + i] = A[i * n + i] + 10000 * n;
+      A[i * n + i] = A[i * n + i] + 10 * n;
     }
     for (int j = N; j < n; ++j)
     {
       for (int i = 0; i < n - N; ++i)
       {
-        A[i * n + j] = 1000 + i + j;
+        A[i * n + j] = 10 + i + j;
       }
     }
   }
+  printf("padding success\n");
 
   // print matrix before lu factorization
   if (N < 11)
@@ -94,37 +135,10 @@ int main(int argc, char **argv)
   cudaMalloc(&device_A, n * n * sizeof(float));
   cudaMemcpy(device_A, A, n * n * sizeof(float), cudaMemcpyHostToDevice);
 
-  // initialize grid dim and block dim
-  int B1 = (B / 32 == 0) ? 1 : (B % 32 == 0) ? (B / 32)
-                                             : (B / 32 + 1);
-  dim3 grid_dim_phase1(B1, B1);
-  dim3 grid_dim_phase2_1(blocks, B1);
-  dim3 grid_dim_phase2_2(B1, blocks);
-  dim3 grid_dim_phase3(blocks, blocks);
-  dim3 block_dim(B, B);
-
-  // blocked lu factorization
-  for (int i = 0; i < blocks; ++i)
+  // LU factorization
+  for (int i = 1; i < N; ++i)
   {
-
-    diagonal_phase<<<grid_dim_phase1, block_dim>>>(i, B, n, device_A);
-
-    for (int j = i + 1; j < blocks; ++j)
-    {
-      row_phase<<<grid_dim_phase2_1, block_dim>>>(i, j, B, n, device_A);
-    }
-    
-    for (int j = i + 1; j < blocks; ++j)
-    {
-      col_phase<<<grid_dim_phase2_2, block_dim>>>(i, j, B, n, device_A);
-
-      for (int k = i + 1; k < blocks; ++k)
-      {
-        right_down_phase<<<grid_dim_phase3, block_dim>>>(i, j, k, B, n, device_A);
-      }
-
-    }
-    
+    compute_LU<<<(N - i) * B_num, B - (i - 1)>>>(i, B, B_num, n, device_A); 
   }
 
   // copy result back to host

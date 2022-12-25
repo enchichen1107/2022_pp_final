@@ -4,6 +4,7 @@ basic
 blocked
 blocked_cuda
 lu_cuda
+lu_cuda_b
 lu_basic
 lu_blocked
 
