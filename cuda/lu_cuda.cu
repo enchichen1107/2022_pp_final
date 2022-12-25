@@ -7,7 +7,6 @@
 #include <sys/time.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include "blocked_lu.h"
 
 #define MAX_THREAD 1024
 
@@ -74,8 +73,8 @@ int main(int argc, char **argv)
   {
     B = MAX_THREAD;
     n = (B * (N / B)) + ((N % B == 0)? 0 : B);
-    printf("n %d\n",n);
     printf("N %d\n",N);
+    printf("n %d\n",n);
     B_num = n / B;
   }
   printf("init success\n");
@@ -94,11 +93,11 @@ int main(int argc, char **argv)
   {
     for (int j = 0; j < N; ++j)
     {
-      A[i * n + j] = 1 + (rand() % 10);
+      A[i * n + j] = 1 + (rand() % 10000);
       L[i * N + j] = 0;
     }
     // ensure diagonally dominant
-    A[i * n + i] = A[i * n + i] + 10 * N;
+    A[i * n + i] = A[i * n + i] + 10000 * N;
   }
   printf("alloc mem success\n");
 
@@ -109,15 +108,15 @@ int main(int argc, char **argv)
     {
       for (int j = 0; j < n; ++j)
       {
-        A[i * n + j] = 10 + i + j;
+        A[i * n + j] = 1000 + i + j;
       }
-      A[i * n + i] = A[i * n + i] + 10 * n;
+      A[i * n + i] = A[i * n + i] + 10000 * n;
     }
     for (int j = N; j < n; ++j)
     {
       for (int i = 0; i < n - N; ++i)
       {
-        A[i * n + j] = 10 + i + j;
+        A[i * n + j] = 1000 + i + j;
       }
     }
   }

@@ -7,9 +7,8 @@
 #include <sys/time.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include "blocked_lu.h"
 
-#define MAX_THREAD 1024
+#define MAX_THREAD 32
 
 using namespace std;
 using std::chrono::duration_cast;
@@ -17,26 +16,42 @@ using std::chrono::milliseconds;
 using std::chrono::seconds;
 using std::chrono::system_clock;
 
-// this method is using n as block width for better global memory coalescing
+// this method tries to utilize share memory better
+// share memory first half for the head row, others for multiplier 
+extern __shared__ float shm[];
 __global__ void compute_LU(int i, int B, int B_num, int n, float *A)
 {
-  __shared__ float multiplier[1];
+  int x = threadIdx.x;
+  int y = threadIdx.y;
+  int jj = (B * (blockIdx.x % B_num)) + x;
+  int ii = (B * (blockIdx.y % B_num)) + y;
 
-  int x = (B * (blockIdx.x % B_num)) + threadIdx.x;
-  int y = blockIdx.x / B_num + i;
-
-  // calculate multiplier
-  if (x == 0)
+  // return useless blocks
+  if ((ii <= (i - 1))||(jj < (i - 1)))
   {
-    multiplier[0] = A[y * n + (i - 1)] / A[(i - 1) * n + (i - 1)];
+    return;
+  }
+
+  // load head row and multiplier in shm
+  if (y == (B - 1))
+  {
+    shm[0 * B + x] = A[(i - 1) * n + jj];
+    __syncthreads();
+  }
+
+  if (x == (B - 1))
+  {
+    shm[1 * B + y] = A[ii * n + (i - 1)] / shm[0 * B + (i - 1)];
+    A[ii * n + (i - 1)] = shm[1 * B + y];
     __syncthreads();
   }
   
   // update row
-  A[y * n + (x + (i - 1))] = A[y * n + (x + (i - 1))] - (multiplier[0] * A[(i - 1) * n + (x + (i - 1))]); 
-
-  // write back multiplier
-  A[y * n + (i - 1)] = multiplier[0];
+  if (jj > (i - 1))
+  {
+    A[ii * n + jj] = A[ii * n + jj] - (shm[0 * B + x] * shm[1 * B + y]); 
+    __syncthreads();
+  }
   
 }
 
@@ -54,9 +69,9 @@ void print_matrix(float *A, int N, int n)
 
 int main(int argc, char **argv)
 {
-  if (argc != 3)
+  if (argc != 4)
   {
-    fprintf(stderr, "must provide exactly 2 arguments N output_filename\n");
+    fprintf(stderr, "must provide exactly 3 arguments N B output_filename\n");
     return 1;
   }
   typedef std::chrono::milliseconds ms;
@@ -64,21 +79,21 @@ int main(int argc, char **argv)
 
   // parsing argument
   int N = atoi(argv[1]);
-  char *out_filename = argv[2];
+  int B = atoi(argv[2]);
+  if (B >= MAX_THREAD)
+  {
+    B = MAX_THREAD;
+  }
+  char *out_filename = argv[3];
 
   // generate matrix
   // srand((unsigned)time(NULL));
-  int n = N, B = N, B_num = 1;
-  // if row size >= max threads in a block then do padding
-  if (N >= MAX_THREAD)
-  {
-    B = MAX_THREAD;
-    n = (B * (N / B)) + ((N % B == 0)? 0 : B);
-    printf("n %d\n",n);
-    printf("N %d\n",N);
-    B_num = n / B;
-  }
-  printf("init success\n");
+  int n = (B * (N / B)) + ((N % B == 0)? 0 : B);
+  printf("n %d\n",n);
+  printf("N %d\n",N);
+  int B_num = n / B;
+  printf("B %d\n",B);
+  printf("B_num %d\n",B_num);
 
   float *A = (float *)malloc(n * n * sizeof(float));
   float *L = (float *)malloc(N * N * sizeof(float));
@@ -89,16 +104,15 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-
   for (int i = 0; i < N; ++i)
   {
     for (int j = 0; j < N; ++j)
     {
-      A[i * n + j] = 1 + (rand() % 10);
+      A[i * n + j] = 1 + (rand() % 10000);
       L[i * N + j] = 0;
     }
     // ensure diagonally dominant
-    A[i * n + i] = A[i * n + i] + 10 * N;
+    A[i * n + i] = A[i * n + i] + 10000 * N;
   }
   printf("alloc mem success\n");
 
@@ -109,15 +123,15 @@ int main(int argc, char **argv)
     {
       for (int j = 0; j < n; ++j)
       {
-        A[i * n + j] = 10 + i + j;
+        A[i * n + j] = 1000 + i + j;
       }
-      A[i * n + i] = A[i * n + i] + 10 * n;
+      A[i * n + i] = A[i * n + i] + 10000 * n;
     }
     for (int j = N; j < n; ++j)
     {
       for (int i = 0; i < n - N; ++i)
       {
-        A[i * n + j] = 10 + i + j;
+        A[i * n + j] = 1000 + i + j;
       }
     }
   }
@@ -136,9 +150,11 @@ int main(int argc, char **argv)
   cudaMemcpy(device_A, A, n * n * sizeof(float), cudaMemcpyHostToDevice);
 
   // LU factorization
+  dim3 grid(B_num, B_num);
+  dim3 block_thread(B, B);
   for (int i = 1; i < N; ++i)
   {
-    compute_LU<<<(N - i) * B_num, B - (i - 1)>>>(i, B, B_num, n, device_A); 
+    compute_LU<<<grid, block_thread, 2 * B *sizeof(float)>>>(i, B, B_num, n, device_A); 
   }
 
   // copy result back to host

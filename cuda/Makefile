@@ -1,6 +1,6 @@
 NVFLAGS  := -std=c++11 -O3 -Xptxas="-v" -arch=sm_61
 LDFLAGS  := -lm
-EXES     := blocked_cuda lu_cuda
+EXES     := lu_cuda lu_cuda_b
 
 alls: $(EXES)
 
