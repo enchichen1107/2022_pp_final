@@ -17,6 +17,7 @@ using std::chrono::milliseconds;
 using std::chrono::seconds;
 using std::chrono::system_clock;
 
+// this method is using n as block width for better global memory coalescing
 __global__ void compute_LU(int i, int B, int B_num, int n, float *A)
 {
   __shared__ float multiplier[1];
