@@ -95,22 +95,6 @@ int main(int argc, char **argv)
   cudaMemcpy(device_A, A, n * n * sizeof(float), cudaMemcpyHostToDevice);
 
   // initialize grid dim and block dim
-  // dim3 grid_dim_phase1(1, 1);
-  // dim3 grid_dim_phase2_1(block_num, 1);
-  // dim3 grid_dim_phase2_2(block_num, 1);
-  // dim3 grid_dim_phase3(block_num, block_num);
-  // dim3 block_dim(BLOCK_FACTOR, BLOCK_FACTOR);
-
-  // blocked lu factorization
-  // blocked_lu(B, N, A, L);
-  // launch kernel
-  // for (int round = 0; round < block_num; ++round)
-  // {
-  //   blocked_fw_phase1<<<grid_dim_phase1, block_dim>>>(round, B, device_dist);
-  //   blocked_fw_phase2_1<<<grid_dim_phase2_1, block_dim>>>(round, B, device_dist);
-  //   blocked_fw_phase2_2<<<grid_dim_phase2_2, block_dim>>>(round, B, device_dist);
-  //   blocked_fw_phase3<<<grid_dim_phase3, block_dim>>>(round, B, device_dist);
-  // }
   int B1 = (B / 32 == 0) ? 1 : (B % 32 == 0) ? (B / 32)
                                              : (B / 32 + 1);
   dim3 grid_dim_phase1(B1, B1);
@@ -118,6 +102,8 @@ int main(int argc, char **argv)
   dim3 grid_dim_phase2_2(B1, blocks);
   dim3 grid_dim_phase3(blocks, blocks);
   dim3 block_dim(B, B);
+
+  // blocked lu factorization
   for (int i = 0; i < blocks; ++i)
   {
 

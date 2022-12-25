@@ -7,5 +7,8 @@ alls: $(EXES)
 clean:
 	rm -f $(EXES)
 
-blocked_cuda: blocked_lu.cu blocked_cuda.cu lu_cuda.cu
+blocked_cuda: blocked_lu.cu blocked_cuda.cu
+	nvcc $(NVFLAGS) $(LDFLAGS) -o $@ $?
+
+lu_cuda: lu_cuda.cu
 	nvcc $(NVFLAGS) $(LDFLAGS) -o $@ $?
