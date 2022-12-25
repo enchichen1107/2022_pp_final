@@ -4,6 +4,9 @@ basic
 blocked
 blocked_cuda
 lu_cuda
+lu_basic
+lu_blocked
+
 
 # Prerequisites
 *.d
