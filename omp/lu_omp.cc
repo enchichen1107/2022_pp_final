@@ -64,11 +64,12 @@ int main(int argc, char **argv)
   // basic lu factorization
     #pragma omp parallel
     {
-        #pragma omp for schedule(static)
         for (int k = 0; k < N - 1; ++k) {
+            #pragma omp for schedule(static)
             for (int i = k + 1; i < N; ++i) {
                 L[i * N + k] = A[i * N + k] / A[k * N + k];
             }
+            #pragma omp for schedule(static)
             for (int j = k; j < N; ++j) {
                 for (int i = k; i < N; ++i) {
                     A[i * N + j] = A[i * N + j] - L[i * N + k] * A[k * N + j];
