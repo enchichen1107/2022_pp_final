@@ -163,27 +163,21 @@ int main(int argc, char **argv)
       float zero = 0.0;
       float one = 1.0;
       for (int i = 0; i < N; ++i) {
-	for (int j = 0; j < N; ++j) {
-	    if (j >= i) {
+          for (int j = 0; j < i; ++j) {
+              out_file.write((char*)&zero, sizeof(float));
+          }
+          for (int j = i; j < N; ++j) {
         	out_file.write((char *)&A[i*N+j], sizeof(float));
 	    }
-	    else { 
-		out_file.write((char*)&zero, sizeof(float));
-	    }
-	}
       }
       for (int i = 0; i < N; ++i) {
-	for (int j = 0; j < N; ++j) {
-	    if (j > i) {
-		out_file.write((char*)&zero, sizeof(float));
-	    }
-	    else if (j == i) {
-		out_file.write((char*)&one, sizeof(float));
-	    }
-	    else {
-       		 out_file.write((char *)&A[i*N+j], sizeof(float));
-	    }
-	}
+          for (int j = 0; j < i; ++j) {
+              out_file.write((char *)&A[i*N+j], sizeof(float));
+          }
+          out_file.write((char*)&one, sizeof(float));
+          for (int j = i+1; j < N; ++j) {
+              out_file.write((char*)&zero, sizeof(float));
+          }
       }
       out_file.close();
         // calculate total spent time
