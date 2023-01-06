@@ -17,9 +17,9 @@ using std::chrono::seconds;
 using std::chrono::system_clock;
 
 // this method is using n as block width for better global memory coalescing
-__global__ void compute_LU(int i, int B, int B_num, int n, float *A)
+__global__ void compute_LU(int i, int B, int B_num, int n, double *A)
 {
-  __shared__ float multiplier[1];
+  __shared__ double multiplier[1];
 
   int x = (B * (blockIdx.x % B_num)) + threadIdx.x;
   int y = blockIdx.x / B_num + i;
@@ -39,7 +39,7 @@ __global__ void compute_LU(int i, int B, int B_num, int n, float *A)
   
 }
 
-void print_matrix(float *A, int N, int n)
+void print_matrix(double *A, int N, int n)
 {
   for (int i = 0; i < N; ++i)
   {
@@ -79,8 +79,8 @@ int main(int argc, char **argv)
   }
   printf("init success\n");
 
-  float *A = (float *)malloc(n * n * sizeof(float));
-  float *L = (float *)malloc(N * N * sizeof(float));
+  double *A = (double *)malloc(n * n * sizeof(double));
+  double *L = (double *)malloc(N * N * sizeof(double));
 
   if ((A == NULL)||(L == NULL))
   {
@@ -130,9 +130,9 @@ int main(int argc, char **argv)
   }
 
   // allocate and copy memory to device
-  float *device_A;
-  cudaMalloc(&device_A, n * n * sizeof(float));
-  cudaMemcpy(device_A, A, n * n * sizeof(float), cudaMemcpyHostToDevice);
+  double *device_A;
+  cudaMalloc(&device_A, n * n * sizeof(double));
+  cudaMemcpy(device_A, A, n * n * sizeof(double), cudaMemcpyHostToDevice);
 
   // LU factorization
   for (int i = 1; i < N; ++i)
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
   }
 
   // copy result back to host
-  cudaMemcpy(A, device_A, n * n * sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(A, device_A, n * n * sizeof(double), cudaMemcpyDeviceToHost);
   cudaFree(device_A);
 
   // extract L and U
@@ -176,12 +176,12 @@ int main(int argc, char **argv)
   {
     for (int j = 0; j < N; ++j)
     {
-      out_file.write((char *)&A[i * n + j], sizeof(float));
+      out_file.write((char *)&A[i * n + j], sizeof(double));
     }
   }
   for (int i = 0; i < N * N; ++i)
   {
-    out_file.write((char *)&L[i], sizeof(float));
+    out_file.write((char *)&L[i], sizeof(double));
   }
   out_file.close();
   free(A);

@@ -13,7 +13,7 @@ using std::chrono::milliseconds;
 using std::chrono::seconds;
 using std::chrono::system_clock;
 
-void print_matrix(float *A, int N)
+void print_matrix(double *A, int N)
 {
   for (int i = 0; i < N; ++i)
   {
@@ -41,8 +41,8 @@ int main(int argc, char **argv)
 
   // generate matrix
   // srand((unsigned)time(NULL));
-  float *A = (float *)malloc(N * N * sizeof(float));
-  float *L = (float *)malloc(N * N * sizeof(float));
+  double *A = (double *)malloc(N * N * sizeof(double));
+  double *L = (double *)malloc(N * N * sizeof(double));
   for (int i = 0; i < N; ++i)
   {
     for (int j = 0; j < N; ++j)
@@ -84,11 +84,11 @@ int main(int argc, char **argv)
   ofstream out_file(out_filename);
   for (int i = 0; i < N * N; ++i)
   {
-    out_file.write((char *)&A[i], sizeof(float));
+    out_file.write((char *)&A[i], sizeof(double));
   }
   for (int i = 0; i < N * N; ++i)
   {
-    out_file.write((char *)&L[i], sizeof(float));
+    out_file.write((char *)&L[i], sizeof(double));
   }
   out_file.close();
   free(A);

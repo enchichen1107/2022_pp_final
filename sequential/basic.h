@@ -1,1 +1,1 @@
-void basic_lu(float *A, float *L, int N);
+void basic_lu(double *A, double *L, int N);

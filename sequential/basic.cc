@@ -1,6 +1,6 @@
 #include "basic.h"
 
-void basic_lu(float *A, float *L, int N)
+void basic_lu(double *A, double *L, int N)
 {
   for (int k = 0; k < N - 1; ++k)
   {

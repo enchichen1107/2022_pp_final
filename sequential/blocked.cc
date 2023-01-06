@@ -16,7 +16,7 @@ void diagonal_phase(int i, int B, int n, float *A)
   }
 }
 
-void row_phase(int i, int j, int B, int n, float *A)
+void row_phase(int i, int j, int B, int n, double *A)
 {
   for (int ii = i * B; ii < (i * B) + (B - 1); ++ii)
   {
@@ -30,7 +30,7 @@ void row_phase(int i, int j, int B, int n, float *A)
   }
 }
 
-void col_phase(int i, int j, int B, int n, float *A)
+void col_phase(int i, int j, int B, int n, double *A)
 {
   for (int ii = i * B; ii < (i * B) + B; ++ii)
   {
@@ -46,7 +46,7 @@ void col_phase(int i, int j, int B, int n, float *A)
   }
 }
 
-void right_down_phase(int i, int j, int k, int B, int n, float *A)
+void right_down_phase(int i, int j, int k, int B, int n, double *A)
 {
   for (int ii = i * B; ii < (i * B) + B; ++ii)
   {
@@ -60,7 +60,7 @@ void right_down_phase(int i, int j, int k, int B, int n, float *A)
   }
 }
 
-void blocked_lu(int B, int N, float *A, float *L)
+void blocked_lu(int B, int N, double *A, float *L)
 {
   int n = N;
   if ((N % B) != 0)
