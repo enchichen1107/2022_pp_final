@@ -32,9 +32,11 @@ int main(int argc, char **argv)
     fprintf(stderr, "must provide exactly 2 arguments N output_filename\n");
     return 1;
   }
-  typedef std::chrono::milliseconds ms;
-  auto total_starttime = duration_cast<ms>(system_clock::now().time_since_epoch()).count();
-
+  //typedef std::chrono::milliseconds ms;
+  //auto total_starttime = duration_cast<ms>(system_clock::now().time_since_epoch()).count();
+  double start; 
+  double end; 
+  start = omp_get_wtime(); 
   // parsing argument
   int N = atoi(argv[1]);
   char *out_filename = argv[2];
@@ -109,7 +111,9 @@ int main(int argc, char **argv)
   free(L);
 
   // calculate total spent time
-  auto total_endtime = duration_cast<ms>(system_clock::now().time_since_epoch()).count();
-  printf("total time spent for basic lu %ld ms\n", (total_endtime - total_starttime));
+  //auto total_endtime = duration_cast<ms>(system_clock::now().time_since_epoch()).count();
+  //printf("total time spent for basic lu %ld ms\n", (total_endtime - total_starttime));
+  end = omp_get_wtime(); 
+  printf("omp work took %f seconds\n", end - start);
 }
 
